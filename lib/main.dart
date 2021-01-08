@@ -1,10 +1,11 @@
-import 'dart:io';
-import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter/material.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:async';
+import 'dart:io';
+import 'DbHelpers.dart';
 import 'Utility.dart';
-
+import 'dart:async';
+import 'modelclass.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,82 +15,109 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: SaveImageDemo(),
+      home: SaveImageDemoSQLite(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 
-class SaveImageDemo extends StatefulWidget {
-  SaveImageDemo() : super();
+class SaveImageDemoSQLite extends StatefulWidget {
+  //
+  SaveImageDemoSQLite() : super();
 
-  final String title = "Flutter Save Image in Preferences";
+  final String title = "Flutter Save Image Machine Testing";
 
   @override
-  _SaveImageDemoState createState() => _SaveImageDemoState();
+  _SaveImageDemoSQLiteState createState() => _SaveImageDemoSQLiteState();
 }
 
-class _SaveImageDemoState extends State<SaveImageDemo> {
+class _SaveImageDemoSQLiteState extends State<SaveImageDemoSQLite> {
+  DBHelper dbHelper;
+  List<Photo> images;
 
-  Future<File> imageFile, imageFile2;
-  Image imageFromPreferences;
 
-  pickImageFromGallery(ImageSource source) {
-    setState(() {
-      imageFile2 = ImagePicker.pickImage(source: source);
-
-    });
-  }
-  pickImageFromCamera(ImageSource source) {
-    setState(() {
-      imageFile = ImagePicker.pickImage(source: source);
-    });
+  @override
+  void initState() {
+    super.initState();
+    images = [];
+    dbHelper = DBHelper();
+    refreshImagesGallery();
   }
 
-  loadImageFromPreferences() {
-    Utility.getImageFromPreferences().then((img) {
-      if (null == img) {
-        return;
-      }
+  refreshImagesGallery() {
+    dbHelper.getPhotos().then((imgs) {
       setState(() {
-        imageFromPreferences = Utility.imageFromBase64String(img);
+        images.clear();
+        images.addAll(imgs);
       });
     });
-  }
-  Widget imageFromCamera() {
-    return FutureBuilder<File>(
-      future: imageFile,
-      builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
-        if (snapshot.connectionState == ConnectionState.done &&
-            null != snapshot.data) {
-          Utility.saveImageToPreferences(Utility.base64String(snapshot.data.readAsBytesSync()));
-          return Image.file(snapshot.data,);
-        } else if (null != snapshot.error) {
-          return 'Error Picking Image'.text.makeCentered();
-        } else {
-          return const Text('No Image Selected', textAlign: TextAlign.center,);
-        }
-      },
-    );
-  }
-  Widget imageFromGallery() {
-    return FutureBuilder<File>(
-      future: imageFile2,
-      builder: (BuildContext context, AsyncSnapshot<File> snapshot1) {
-        if (snapshot1.connectionState == ConnectionState.done &&
-            null != snapshot1.data) {
-          Utility.saveImageToPreferences(Utility.base64String(snapshot1.data.readAsBytesSync()));
-          return Image.file(snapshot1.data,);
-        } else if (null != snapshot1.error) {
-          return 'Error Picking Image'.text.makeCentered();
-        } else {
-          return 'No Image Selected'.text.makeCentered();
-        }
-      },
-    );
+
   }
 
+  pickImageFromGallery() {
+    ImagePicker.pickImage(source: ImageSource.gallery).then((imgFile) {
+      String imgString = Utility.base64String(imgFile.readAsBytesSync());
+      Photo photo = Photo(0, imgString);
+      dbHelper.save(photo);
+      refreshImagesGallery();
+    });
+  }
+  /*listviewCamera() {
+    return Container(
+      height: 280,
+      child: Padding(
+        padding: EdgeInsets.all(5.0),
+        child: Column(
+          children: [
+            GridView.count(
+              scrollDirection: Axis.horizontal,
+              crossAxisCount: 1,
+              childAspectRatio: 1.0,
+              mainAxisSpacing: 4.0,
+              crossAxisSpacing: 4.0,
+              children: imagec.map((photoc) {
+                return Utility.imageFromBase64String(photoc.photo_namec);
+              }).toList(),
+            ).expand(),
+            10.heightBox,
+            RaisedButton.icon(
+                onPressed: pickImageFromCamera,
+                icon: new Icon(Icons.camera),
+                label: new Text("Pick-Up Camera Images")),
+          ],
+        ),
+      ),
+    );
+  }*/
+
+  listviewGallery() {
+    return Container(
+      height: 300,
+      child: Padding(
+        padding: EdgeInsets.all(7.0),
+        child: Column(
+          children: [
+            GridView.count(
+              scrollDirection: Axis.horizontal,
+              crossAxisCount: 1,
+              childAspectRatio: 1.0,
+              mainAxisSpacing: 4.0,
+              crossAxisSpacing: 4.0,
+              children: images.map((photo) {
+                return Utility.imageFromBase64String(photo.photo_name);
+              }).toList(),
+            ).expand(),
+            10.heightBox,
+            RaisedButton.icon(
+                onPressed: pickImageFromGallery,
+                icon: new Icon(Icons.image),
+                label: new Text("Pick-Up Images")),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,75 +126,26 @@ class _SaveImageDemoState extends State<SaveImageDemo> {
         title: Text(widget.title),
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: Icon(Icons.add),
             onPressed: () {
-              loadImageFromPreferences();
+              pickImageFromGallery();
             },
-          ),
+          )
         ],
       ),
-      body: VStack([
-        new Container(
-          padding: const EdgeInsets.all(10.0),
-          child: VStack([
-            imageFile == null
-                ?  Container(
-              height: 250.0,
-              width: 400.0,
-              child: new Icon(
-                Icons.image,
-                size: 250.0,
-                color: Theme.of(context).primaryColor,
-              ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: <Widget>[
+            /*Flexible(
+              child: listviewCamera(),
+            ),*/
+            Flexible(
+              child: listviewGallery(),
             )
-                :  SizedBox(
-              height: 200.0,
-              width: 500,
-              child: imageFromCamera(),
-            ),
-            RaisedButton.icon(
-                onPressed: () {
-                  pickImageFromCamera(ImageSource.camera);
-                  setState(() {
-                    imageFromPreferences = null;
-                  });
-                },
-                icon: new Icon(Icons.image),
-                label:  'Pick-Up Images'.text.make())
-          ],alignment: MainAxisAlignment.center,crossAlignment: CrossAxisAlignment.center,),
+          ],
         ),
-        new Container(
-          padding: const EdgeInsets.all(2.0),
-          child: VStack([
-            imageFile2 == null
-                ?  Container(
-              height: 250.0,
-              width: 400.0,
-              child: new Icon(
-                Icons.image,
-                size: 250.0,
-                color: Theme.of(context).primaryColor,
-              ),
-            )
-                :  SizedBox(
-              height: 200.0,
-              width: 500,
-              child: imageFromGallery(),
-            ),
-            RaisedButton.icon(
-                onPressed: () {
-                  pickImageFromGallery(ImageSource.gallery);
-                  setState(() {
-                    imageFromPreferences = null;
-                  });
-                },
-                icon: new Icon(Icons.image),
-                label:  'Pick-Up Images'.text.make())
-          ],alignment: MainAxisAlignment.center,crossAlignment: CrossAxisAlignment.center,),
-        ),
-      ]),
+      ),
     );
   }
 }
-
-
