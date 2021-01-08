@@ -5,13 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 
 class Utility {
-  //
   static const String KEY = "IMAGE_KEY";
-
-  static Future<String> getImageFromPreferences() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString(KEY) ?? null;
-  }
 
   static Future<bool> saveImageToPreferences(String value) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -32,4 +26,6 @@ class Utility {
   static String base64String(Uint8List data) {
     return base64Encode(data);
   }
+
+
 }
